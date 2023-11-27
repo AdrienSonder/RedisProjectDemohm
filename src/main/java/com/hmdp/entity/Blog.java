@@ -86,5 +86,7 @@ public class Blog implements Serializable {
      */
     private LocalDateTime updateTime;
 
+    @TableField(exist = false)
+    private Boolean isLike;
 
 }

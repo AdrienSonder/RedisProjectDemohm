@@ -7,6 +7,7 @@ import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
 import com.hmdp.entity.User;
 import com.hmdp.service.IBlogService;
+import com.hmdp.service.IShopService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
@@ -31,6 +32,9 @@ public class BlogController {
     private IBlogService blogService;
     @Resource
     private IUserService userService;
+
+    @Resource
+    private IShopService shopService;
 
     @PostMapping
     public Result saveBlog(@RequestBody Blog blog) {
@@ -79,5 +83,19 @@ public class BlogController {
             blog.setIcon(user.getIcon());
         });
         return Result.ok(records);
+    }
+
+    @GetMapping("/of/follow")
+    public Result queryBlogOfFollow(@RequestParam("lastId") Long max,@RequestParam(value = "offset",defaultValue = "0") Integer offset){
+        return blogService.queryBlogOfFollow(max,offset);
+    }
+
+    public Result queryShopByType(
+    @RequestParam("typeId")Integer typeId,
+    @RequestParam(value = "current",defaultValue = "1")Integer current,
+    @RequestParam(value = "x",required = false) Double x,
+    @RequestParam(value = "y",required = false) Double y
+    ){
+        return shopService.queryShopByType(typeId,current,x,y);
     }
 }

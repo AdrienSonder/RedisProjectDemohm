@@ -7,8 +7,10 @@ import com.hmdp.entity.Follow;
 import com.hmdp.mapper.FollowMapper;
 import com.hmdp.service.IFollowService;
 import com.hmdp.utils.UserHolder;
+import org.springframework.stereotype.Service;
 
 
+@Service
 public class FollowServiceImpl extends ServiceImpl<FollowMapper, Follow> implements IFollowService {
 
   @Override

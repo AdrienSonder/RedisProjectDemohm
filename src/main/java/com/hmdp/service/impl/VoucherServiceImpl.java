@@ -56,5 +56,10 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
         stringRedisTemplate.opsForValue().set(SECKILL_STOCK_KEY + voucher.getId(), voucher.getStock().toString());
     }
 
+    @Override
+    public Result createVoucherOrder(Long voucherId) {
+        return null;
+    }
+
 
 }

@@ -23,4 +23,7 @@ public interface IShopService extends IService<Shop> {
 
   Shop queryWithMutex(Long id);
 
+  void saveShop2Redis(Long id,Long expirSeconds);
+
+  Shop queryWithLogicalExpire(Long id);
 }

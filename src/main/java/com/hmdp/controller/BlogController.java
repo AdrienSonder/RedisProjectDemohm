@@ -1,19 +1,26 @@
 package com.hmdp.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
+import com.hmdp.entity.Follow;
 import com.hmdp.entity.User;
 import com.hmdp.service.IBlogService;
+import com.hmdp.service.IFollowService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
+
+import static com.hmdp.utils.RedisConstants.FEED_KEY;
 
 /**
  * <p>
@@ -32,6 +39,12 @@ public class BlogController {
     @Resource
     private IUserService userService;
 
+    @Resource
+    private IFollowService followService;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
     @PostMapping
     public Result saveBlog(@RequestBody Blog blog) {
         // 获取登录用户
@@ -39,6 +52,17 @@ public class BlogController {
         blog.setUserId(user.getId());
         // 保存探店博文
         blogService.save(blog);
+        //条件构造器
+        LambdaQueryWrapper<Follow> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Follow::getFollowUserId,user.getId());
+        //获取当前用户的粉丝
+        List<Follow> follows = followService.list(queryWrapper);
+        for(Follow follow : follows){
+            Long userId = follow.getUserId();
+            String key = FEED_KEY + userId;
+            //推送数据
+            stringRedisTemplate.opsForZSet().add(key,blog.getId().toString(),System.currentTimeMillis());
+        }
         // 返回id
         return Result.ok(blog.getId());
     }
@@ -86,6 +110,12 @@ public class BlogController {
         // 获取当前页数据
         List<Blog> records = page.getRecords();
         return Result.ok(records);
+    }
+
+
+    @GetMapping("/of/follow")
+    public Result queryBlogOfFollow(@RequestParam("lastId") Long max, @RequestParam(value = "offset",defaultValue = "0") Integer offset) {
+        return blogService.queryBlogOfFollow(max,offset);
     }
 
 }

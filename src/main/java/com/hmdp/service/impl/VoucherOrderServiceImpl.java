@@ -13,6 +13,7 @@ import com.hmdp.utils.UserHolder;
 import java.time.LocalDateTime;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
   @Autowired
   private ISeckillVoucherService seckillVoucherService;
+
+  @Autowired
+  private StringRedisTemplate stringRedisTemplate;
+
   @Override
   public Result seckillVoucher(Long voucherId) {
     LambdaQueryWrapper<SeckillVoucher> queryWrapper = new LambdaQueryWrapper<>();
@@ -51,9 +56,25 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
       return Result.fail("优惠券已被抢光了哦，下次记得手速快点");
     }
     Long userId = UserHolder.getUser().getId();
-    synchronized (userId.toString().intern()) {
+    //创建锁对象
+    SimpleRedisLock redisLock = new SimpleRedisLock("order:" + userId,stringRedisTemplate);
+    //获取锁对象
+    boolean isLock = redisLock.tryLock(120);
+    //加锁失败  存在多线程抢卷
+    if(!isLock){
+      return Result.fail("不允许抢多张优惠卷");
+    }
+ /*   synchronized (userId.toString().intern()) {
       IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
       return createVoucherOrder(voucherId);
+    }*/
+    try{
+      //获取代理对象
+      IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
+      return proxy.createVoucherOrder(voucherId);
+    } finally {
+      //释放锁
+      redisLock.unlock();
     }
   }
 

@@ -1,10 +1,13 @@
 package com.hmdp.service.impl;
 
 import com.hmdp.service.ILock;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 public class SimpleRedisLock implements ILock {
+
+  private static final String ID_PREFIX = UUID.randomUUID().toString() + "-";
 
   //锁的前缀
   private static final String KEY_PREFIX = "lock:";
@@ -27,9 +30,9 @@ public class SimpleRedisLock implements ILock {
   @Override
   public boolean tryLock(long timeoutSec) {
     //获取线程标识
-    long threadId = Thread.currentThread().getId();
+    String threadId =ID_PREFIX + Thread.currentThread().getId();
     //获取锁
-    Boolean success = stringRedisTemplate.opsForValue().setIfAbsent(KEY_PREFIX + name, threadId + "",timeoutSec,
+    Boolean success = stringRedisTemplate.opsForValue().setIfAbsent(KEY_PREFIX + name, threadId ,timeoutSec,
         TimeUnit.SECONDS);
     //防止自动拆箱出现null
     return Boolean.TRUE.equals(success);
@@ -40,6 +43,14 @@ public class SimpleRedisLock implements ILock {
    */
   @Override
   public void unlock() {
-    stringRedisTemplate.delete(KEY_PREFIX + name);
+    //获取当前线程的标识
+    String threadId = ID_PREFIX + Thread.currentThread().getId();
+    //获取锁中的标识
+    String id = stringRedisTemplate.opsForValue().get(KEY_PREFIX + name);
+    //判断标识是否一致
+    if(threadId.equals(id)){
+      //释放锁
+      stringRedisTemplate.delete(KEY_PREFIX + name);
+    }
   }
 }

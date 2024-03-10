@@ -11,11 +11,16 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
 import java.time.LocalDateTime;
+
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
 
 /**
  * <p>
@@ -37,6 +42,9 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
   @Autowired
   private StringRedisTemplate stringRedisTemplate;
 
+  @Resource
+  private RedissonClient redissonClient;
+
   @Override
   public Result seckillVoucher(Long voucherId) {
     LambdaQueryWrapper<SeckillVoucher> queryWrapper = new LambdaQueryWrapper<>();
@@ -57,9 +65,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     }
     Long userId = UserHolder.getUser().getId();
     //创建锁对象
-    SimpleRedisLock redisLock = new SimpleRedisLock("order:" + userId,stringRedisTemplate);
+    //SimpleRedisLock redisLock = new SimpleRedisLock("order:" + userId,stringRedisTemplate);
+    RLock redisLock = redissonClient.getLock("order:" + userId);
     //获取锁对象
-    boolean isLock = redisLock.tryLock(120);
+    boolean isLock = redisLock.tryLock();
     //加锁失败  存在多线程抢卷
     if(!isLock){
       return Result.fail("不允许抢多张优惠卷");

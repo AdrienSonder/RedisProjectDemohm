@@ -1,9 +1,15 @@
 package com.hmdp.controller;
 
 
-import org.springframework.web.bind.annotation.RequestMapping;
+import cn.hutool.core.bean.BeanUtil;
+import com.hmdp.dto.Result;
+import com.hmdp.dto.UserDTO;
+import com.hmdp.entity.User;
+import com.hmdp.service.IFollowService;
+import com.hmdp.service.IUserService;
+import org.springframework.web.bind.annotation.*;
 
-import org.springframework.web.bind.annotation.RestController;
+import javax.annotation.Resource;
 
 /**
  * <p>
@@ -17,4 +23,40 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/follow")
 public class FollowController {
 
+    @Resource
+    private IUserService userService;
+
+    @Resource
+    private IFollowService followService;
+
+    //判断当前用户是否关注了该博主
+    @GetMapping("/or/not/{id}")
+    public Result isFollow(Long followUserId){
+        return followService.isFollow(followUserId);
+    }
+
+    //实现取关/关注
+    @PutMapping("/{id}/{isFollow}")
+    public Result follow(@PathVariable("id") Long followUserId,@PathVariable("isFollow") Boolean isFellow){
+        return followService.follow(followUserId,isFellow);
+    }
+
+
+    @GetMapping("/id")
+    public Result queryById(@PathVariable("id") Long userId){
+        //查询详情
+        User user = userService.getById(userId);
+        if(user == null){
+            //没有详情 应该是第一次查询详情
+            return Result.ok();
+        }
+        UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
+        //返回
+        return Result.ok(userDTO);
+    }
+
+    @GetMapping("/common/{id}")
+    public Result followCommons(@PathVariable Long id){
+        return followService.followCommons(id);
+    }
 }
